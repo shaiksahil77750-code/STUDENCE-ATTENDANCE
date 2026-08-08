@@ -1,0 +1,1 @@
+- [API contract validation compatibility](api-contract-zod-compatibility.md) — OpenAPI integer schemas can generate unsupported zod.int calls in this workspace.

@@ -10,6 +10,18 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Overview metrics
+  - name: students
+    description: Student roster
+  - name: attendance
+    description: Attendance tracking
+  - name: timetable
+    description: Weekly timetable
+  - name: leave
+    description: Leave planning
+  - name: ai
+    description: AI-assisted review
 paths:
   /healthz:
     get:
@@ -24,7 +36,160 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard overview
+      responses:
+        "200":
+          description: Dashboard overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /students:
+    get:
+      operationId: listStudents
+      tags: [students]
+      summary: List students
+      responses:
+        "200":
+          description: Student roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Student"
+  /students/{id}:
+    get:
+      operationId: getStudent
+      tags: [students]
+      summary: Get a student
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "404":
+          description: Student not found
+  /attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      summary: List attendance records
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: week
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+    post:
+      operationId: markAttendance
+      tags: [attendance]
+      summary: Mark attendance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceInput"
+      responses:
+        "201":
+          description: Updated record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+  /timetable:
+    get:
+      operationId: listTimetable
+      tags: [timetable]
+      summary: List timetable entries
+      responses:
+        "200":
+          description: Timetable
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimetableEntry"
+  /leave-plans:
+    get:
+      operationId: listLeavePlans
+      tags: [leave]
+      summary: List leave plans
+      responses:
+        "200":
+          description: Leave plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeavePlan"
+    post:
+      operationId: createLeavePlan
+      tags: [leave]
+      summary: Create a leave plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeavePlanInput"
+      responses:
+        "201":
+          description: Created leave plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeavePlan"
+  /ai/timetable-review:
+    post:
+      operationId: reviewTimetable
+      tags: [ai]
+      summary: Review timetable with AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "200":
+          description: AI review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimetableReview"
 components:
+  parameters:
+    StudentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: number
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +198,102 @@ components:
           type: string
       required:
         - status
+    Dashboard:
+      type: object
+      required: [attendanceRate, presentToday, totalStudents, classesToday, weeklyTrend, alerts]
+      properties:
+        attendanceRate: { type: number }
+        presentToday: { type: number }
+        totalStudents: { type: number }
+        classesToday: { type: number }
+        weeklyTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        alerts:
+          type: array
+          items:
+            type: string
+    TrendPoint:
+      type: object
+      required: [day, rate]
+      properties:
+        day: { type: string }
+        rate: { type: number }
+    Student:
+      type: object
+      required: [id, name, grade, section, attendanceRate, status]
+      properties:
+        id: { type: number }
+        name: { type: string }
+        grade: { type: string }
+        section: { type: string }
+        attendanceRate: { type: number }
+        status: { type: string, enum: [present, absent, late, excused] }
+        initials: { type: string }
+    AttendanceRecord:
+      type: object
+      required: [id, studentId, studentName, date, status]
+      properties:
+        id: { type: number }
+        studentId: { type: number }
+        studentName: { type: string }
+        date: { type: string, format: date }
+        status: { type: string, enum: [present, absent, late, excused] }
+        note: { type: ["string", "null"] }
+    AttendanceInput:
+      type: object
+      required: [studentId, date, status]
+      properties:
+        studentId: { type: number }
+        date: { type: string, format: date }
+        status: { type: string, enum: [present, absent, late, excused] }
+        note: { type: string }
+    TimetableEntry:
+      type: object
+      required: [id, day, startTime, endTime, subject, room, teacher, color]
+      properties:
+        id: { type: number }
+        day: { type: string, enum: [Monday, Tuesday, Wednesday, Thursday, Friday] }
+        startTime: { type: string }
+        endTime: { type: string }
+        subject: { type: string }
+        room: { type: string }
+        teacher: { type: string }
+        color: { type: string }
+    LeavePlan:
+      type: object
+      required: [id, title, startDate, endDate, days, status, impact]
+      properties:
+        id: { type: number }
+        title: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        days: { type: number }
+        status: { type: string, enum: [draft, optimized, submitted] }
+        impact: { type: string }
+    LeavePlanInput:
+      type: object
+      required: [title, startDate, endDate]
+      properties:
+        title: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+    ReviewInput:
+      type: object
+      required: [focus]
+      properties:
+        focus: { type: string }
+    TimetableReview:
+      type: object
+      required: [score, summary, suggestions, conflicts]
+      properties:
+        score: { type: number }
+        summary: { type: string }
+        suggestions:
+          type: array
+          items: { type: string }
+        conflicts:
+          type: array
+          items: { type: string }
 
